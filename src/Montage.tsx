@@ -1,51 +1,40 @@
-import { AbsoluteFill, Sequence, interpolate, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Sequence } from "remotion";
+import { CLIPS, VIDEO, totalDuration } from "./config";
+import { BrandIntro } from "./components/BrandIntro";
+import { BrandOutro } from "./components/BrandOutro";
+import { ClipSlot } from "./components/ClipSlot";
+import { FlashTransition } from "./components/FlashTransition";
 
-type SlideProps = {
-  title: string;
-  color: string;
-};
-
-const Slide: React.FC<SlideProps> = ({ title, color }) => {
-  const frame = useCurrentFrame();
-  const opacity = interpolate(frame, [0, 15], [0, 1], {
-    extrapolateRight: "clamp",
-  });
-
-  return (
-    <AbsoluteFill
-      style={{ backgroundColor: color, justifyContent: "center", alignItems: "center" }}
-    >
-      <h1
-        style={{
-          color: "white",
-          fontSize: 80,
-          fontFamily: "sans-serif",
-          opacity,
-          transform: `translateY(${interpolate(frame, [0, 15], [30, 0], { extrapolateRight: "clamp" })}px)`,
-        }}
-      >
-        {title}
-      </h1>
-    </AbsoluteFill>
-  );
-};
+export { totalDuration };
 
 export const Montage: React.FC = () => {
-  const slideDuration = 90; // 3 seconds at 30fps
+  const { introDuration, clipDuration, flashDuration, outroDuration } = VIDEO;
 
-  const slides: SlideProps[] = [
-    { title: "Scène 1", color: "#1a1a2e" },
-    { title: "Scène 2", color: "#16213e" },
-    { title: "Scène 3", color: "#0f3460" },
-  ];
+  const blockSize = clipDuration + flashDuration;
 
   return (
-    <AbsoluteFill>
-      {slides.map((slide, i) => (
-        <Sequence key={i} from={i * slideDuration} durationInFrames={slideDuration}>
-          <Slide {...slide} />
-        </Sequence>
-      ))}
+    <AbsoluteFill style={{ backgroundColor: "#000" }}>
+      <Sequence from={0} durationInFrames={introDuration}>
+        <BrandIntro />
+      </Sequence>
+
+      {CLIPS.map((clip, i) => {
+        const blockStart = introDuration + i * blockSize;
+        return (
+          <Sequence key={i} from={blockStart} durationInFrames={blockSize}>
+            <Sequence from={0} durationInFrames={flashDuration}>
+              <FlashTransition />
+            </Sequence>
+            <Sequence from={flashDuration} durationInFrames={clipDuration}>
+              <ClipSlot title={clip.title} googleDriveId={clip.googleDriveId} index={i} />
+            </Sequence>
+          </Sequence>
+        );
+      })}
+
+      <Sequence from={totalDuration - outroDuration} durationInFrames={outroDuration}>
+        <BrandOutro />
+      </Sequence>
     </AbsoluteFill>
   );
 };
